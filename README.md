@@ -98,7 +98,7 @@ Pull the image from GitHub Container Registry or Docker Hub:
 ```bash
 docker pull ghcr.io/r0x4r/pinaak:latest
 # or
-docker pull r0x4r/pinaak:latest
+docker pull aumeshan/pinaak:latest
 ```
 
 Run directly against a target domain:

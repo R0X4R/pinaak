@@ -22,7 +22,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: r0x4r/pinaak
+          images: aumeshan/pinaak
           tags: |
             type=semver,pattern=v{{major}}
             type=semver,pattern=v{{major}}.{{minor}}

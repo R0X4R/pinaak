@@ -116,7 +116,7 @@ pinaak -h
 | Flag | Shorthand | Default | Description |
 | :--- | :--- | :--- | :--- |
 | `-domain` | `-d` | `""` | Target domain to discover origin IP for |
-| `-list` | `-l` | `""` | File containing already-known subdomains, or `-` for stdin |
+| `-list` | `-l` | `""` | File containing already-known subdomains (or auto-read from stdin) |
 | `-config` | | `""` | Configuration file path (default: `~/.config/pinaak/config.yaml`) |
 | `-threads` | `-t` | `25` | Number of concurrent workers |
 | `-timeout` | | `10` | Network timeout in seconds |
@@ -143,19 +143,25 @@ pinaak -d target.com
 Pipe subdomains directly from subfinder:
 
 ```bash
-subfinder -d target.com -silent | pinaak -d target.com -l -
+subfinder -d target.com -silent | pinaak -d target.com
+```
+
+Pipe subdomains from stdin without flags:
+
+```bash
+cat subdomains.txt | pinaak
 ```
 
 Provide a list of already-known subdomains:
 
 ```bash
-pinaak -d target.com -l subdomains.txt
+pinaak -l subdomains.txt
 ```
 
-Filter subdomains without a target domain:
+Combine target domain with a subdomains list:
 
 ```bash
-cat subdomains.txt | pinaak -l - -skip-verify
+pinaak -d target.com -l subdomains.txt
 ```
 
 Save results to a file in JSON format:
@@ -172,11 +178,11 @@ pinaak -d target.com -t 50 -timeout 5
 
 ## Credits & Acknowledgements
 
-Pinaak relies on these open-source libraries:
+Pinaak relies on open-source libraries:
 
-* **[ProjectDiscovery cdncheck](https://github.com/projectdiscovery/cdncheck)** for CDN and WAF CIDR range detection.
-* **[ProjectDiscovery dnsx](https://github.com/projectdiscovery/dnsx)** for concurrent DNS resolution.
-* **[ProjectDiscovery goflags](https://github.com/projectdiscovery/goflags)** for CLI flag parsing and configuration management.
-* **[Fatih Arslan color](https://github.com/fatih/color)** for terminal color output.
-* **[Murmur3](https://github.com/spaolacci/murmur3)** for Shodan-compatible favicon hash calculation.
-* **[sqlmapproject](https://github.com/sqlmapproject/sqlmap)** for the browser User-Agent dataset.
+[ProjectDiscovery cdncheck](https://github.com/projectdiscovery/cdncheck) provides CDN and WAF CIDR range detection.
+[ProjectDiscovery dnsx](https://github.com/projectdiscovery/dnsx) handles concurrent DNS resolution.
+[ProjectDiscovery goflags](https://github.com/projectdiscovery/goflags) provides CLI flag parsing and configuration management.
+[Fatih Arslan color](https://github.com/fatih/color) formats terminal color output.
+[Murmur3](https://github.com/spaolacci/murmur3) provides Shodan-compatible favicon hash calculation.
+[sqlmapproject](https://github.com/sqlmapproject/sqlmap) provides the browser User-Agent dataset.

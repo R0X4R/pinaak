@@ -65,6 +65,13 @@ func FetchBaseline(domain string, timeoutSec int) (*BaselineResponse, error) {
 
 // VerifyCandidateIP routes direct requests to the candidate IP with the domain in Host header.
 func VerifyCandidateIP(ctx context.Context, domain string, ip string, method string, baseline *BaselineResponse, timeoutSec int) (*ResultEntry, bool) {
+	domainBaseline := baseline
+	if domainBaseline == nil && domain != "" {
+		if b, err := FetchBaseline(domain, timeoutSec); err == nil {
+			domainBaseline = b
+		}
+	}
+
 	dialer := &net.Dialer{
 		Timeout: time.Duration(timeoutSec) * time.Second,
 	}
@@ -99,7 +106,7 @@ func VerifyCandidateIP(ctx context.Context, domain string, ip string, method str
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return verifyCandidateHTTP(ctx, domain, ip, method, baseline, certMatches, timeoutSec)
+		return verifyCandidateHTTP(ctx, domain, ip, method, domainBaseline, certMatches, timeoutSec)
 	}
 	defer resp.Body.Close()
 
@@ -109,7 +116,7 @@ func VerifyCandidateIP(ctx context.Context, domain string, ip string, method str
 	}
 
 	directTitle := extractTitle(string(body))
-	confidence, confirmed := evaluateMatch(baseline, resp.StatusCode, directTitle, certMatches)
+	confidence, confirmed := evaluateMatch(domainBaseline, resp.StatusCode, directTitle, certMatches)
 	if !confirmed {
 		return nil, false
 	}

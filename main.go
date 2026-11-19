@@ -41,7 +41,7 @@ func run() error {
 	}
 
 	if opts.Domain == "" && opts.SubdomainsList == "" {
-		return fmt.Errorf("target domain (-d) or subdomains list (-l, or '-' for stdin) is required")
+		return fmt.Errorf("target domain (-d), subdomains list (-l), or piped stdin is required")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

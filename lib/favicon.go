@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/R0X4R/pinaak/pkg"
 	"github.com/spaolacci/murmur3"
 )
 
@@ -30,7 +31,7 @@ func FetchFavicon(domain string, timeoutSec int) ([]byte, error) {
 		if err != nil {
 			continue
 		}
-		req.Header.Set("User-Agent", RandomUserAgent())
+		req.Header.Set("User-Agent", pkg.RandomUserAgent())
 
 		resp, err := client.Do(req)
 		if err != nil {
@@ -75,8 +76,8 @@ func CalculateFaviconHash(iconBytes []byte) int32 {
 }
 
 // SearchFaviconQueries searches Shodan and FOFA for hosts matching the favicon hash.
-func SearchFaviconQueries(domain string, hash int32, shodanKey string, fofaEmail string, fofaKey string, cdnChecker *CDNChecker, timeoutSec int) ([]ResultCandidate, error) {
-	var candidates []ResultCandidate
+func SearchFaviconQueries(domain string, hash int32, shodanKey string, fofaEmail string, fofaKey string, cdnChecker *CDNChecker, timeoutSec int) ([]pkg.ResultCandidate, error) {
+	var candidates []pkg.ResultCandidate
 	seenIP := make(map[string]bool)
 
 	httpClient := &http.Client{
@@ -106,7 +107,7 @@ func SearchFaviconQueries(domain string, hash int32, shodanKey string, fofaEmail
 
 						isCDN, _, _ := cdnChecker.CheckIP(ip)
 						if !isCDN {
-							candidates = append(candidates, ResultCandidate{
+							candidates = append(candidates, pkg.ResultCandidate{
 								Domain:   domain,
 								OriginIP: ip,
 								Method:   "favicon-hash",
@@ -142,7 +143,7 @@ func SearchFaviconQueries(domain string, hash int32, shodanKey string, fofaEmail
 
 							isCDN, _, _ := cdnChecker.CheckIP(ip)
 							if !isCDN {
-								candidates = append(candidates, ResultCandidate{
+								candidates = append(candidates, pkg.ResultCandidate{
 									Domain:   domain,
 									OriginIP: ip,
 									Method:   "favicon-hash",

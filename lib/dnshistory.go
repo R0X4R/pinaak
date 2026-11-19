@@ -8,12 +8,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/R0X4R/pinaak/pkg"
 	"github.com/miekg/dns"
 	"github.com/projectdiscovery/dnsx/libs/dnsx"
 )
 
 // ExtractMailRecords queries MX and SPF TXT records that often point directly to origin subnets.
-func ExtractMailRecords(domain string, cdnChecker *CDNChecker, timeoutSec int) ([]ResultCandidate, error) {
+func ExtractMailRecords(domain string, cdnChecker *CDNChecker, timeoutSec int) ([]pkg.ResultCandidate, error) {
 	opts := dnsx.Options{
 		BaseResolvers: []string{"1.1.1.1:53", "8.8.8.8:53"},
 		MaxRetries:    2,
@@ -26,7 +27,7 @@ func ExtractMailRecords(domain string, cdnChecker *CDNChecker, timeoutSec int) (
 		return nil, fmt.Errorf("initializing dnsx for mail records failed: %w", err)
 	}
 
-	var candidates []ResultCandidate
+	var candidates []pkg.ResultCandidate
 	seen := make(map[string]bool)
 
 	// Query multiple record types simultaneously
@@ -53,7 +54,7 @@ func ExtractMailRecords(domain string, cdnChecker *CDNChecker, timeoutSec int) (
 
 				isCDN, _, _ := cdnChecker.CheckIP(ip)
 				if !isCDN {
-					candidates = append(candidates, ResultCandidate{
+					candidates = append(candidates, pkg.ResultCandidate{
 						Domain:   domain,
 						OriginIP: ip,
 						Method:   "mail-records",
@@ -80,7 +81,7 @@ func ExtractMailRecords(domain string, cdnChecker *CDNChecker, timeoutSec int) (
 							seen[ipStr] = true
 							isCDN, _, _ := cdnChecker.CheckIP(ipStr)
 							if !isCDN {
-								candidates = append(candidates, ResultCandidate{
+								candidates = append(candidates, pkg.ResultCandidate{
 									Domain:   domain,
 									OriginIP: ipStr,
 									Method:   "mail-records",
@@ -98,7 +99,7 @@ func ExtractMailRecords(domain string, cdnChecker *CDNChecker, timeoutSec int) (
 }
 
 // QuerySecurityTrailsHistory fetches historical A records from SecurityTrails.
-func QuerySecurityTrailsHistory(domain string, apiKey string, cdnChecker *CDNChecker, timeoutSec int) ([]ResultCandidate, error) {
+func QuerySecurityTrailsHistory(domain string, apiKey string, cdnChecker *CDNChecker, timeoutSec int) ([]pkg.ResultCandidate, error) {
 	if apiKey == "" {
 		return nil, nil
 	}
@@ -137,7 +138,7 @@ func QuerySecurityTrailsHistory(domain string, apiKey string, cdnChecker *CDNChe
 		return nil, fmt.Errorf("decoding securitytrails response failed: %w", err)
 	}
 
-	var candidates []ResultCandidate
+	var candidates []pkg.ResultCandidate
 	seen := make(map[string]bool)
 
 	for _, record := range responseData.Records {
@@ -153,7 +154,7 @@ func QuerySecurityTrailsHistory(domain string, apiKey string, cdnChecker *CDNChe
 				continue
 			}
 
-			candidates = append(candidates, ResultCandidate{
+			candidates = append(candidates, pkg.ResultCandidate{
 				Domain:   domain,
 				OriginIP: ip,
 				Method:   "dns-history",
@@ -166,8 +167,8 @@ func QuerySecurityTrailsHistory(domain string, apiKey string, cdnChecker *CDNChe
 }
 
 // CheckDNSHistoryAndMail combines historical DNS lookups and mail record analysis.
-func CheckDNSHistoryAndMail(domain string, securityTrailsKey string, cdnChecker *CDNChecker, timeoutSec int) ([]ResultCandidate, error) {
-	var combined []ResultCandidate
+func CheckDNSHistoryAndMail(domain string, securityTrailsKey string, cdnChecker *CDNChecker, timeoutSec int) ([]pkg.ResultCandidate, error) {
+	var combined []pkg.ResultCandidate
 	seen := make(map[string]bool)
 
 	mailCandidates, err := ExtractMailRecords(domain, cdnChecker, timeoutSec)

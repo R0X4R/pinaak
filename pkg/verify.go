@@ -1,4 +1,4 @@
-package lib
+package pkg
 
 import (
 	"context"
@@ -10,8 +10,6 @@ import (
 	"regexp"
 	"strings"
 	"time"
-
-	"github.com/R0X4R/pinaak/pkg"
 )
 
 var titleRegex = regexp.MustCompile(`(?i)<title[^>]*>(.*?)</title>`)
@@ -66,7 +64,7 @@ func FetchBaseline(domain string, timeoutSec int) (*BaselineResponse, error) {
 }
 
 // VerifyCandidateIP routes direct requests to the candidate IP with the domain in Host header.
-func VerifyCandidateIP(ctx context.Context, domain string, ip string, method string, baseline *BaselineResponse, timeoutSec int) (*pkg.ResultEntry, bool) {
+func VerifyCandidateIP(ctx context.Context, domain string, ip string, method string, baseline *BaselineResponse, timeoutSec int) (*ResultEntry, bool) {
 	dialer := &net.Dialer{
 		Timeout: time.Duration(timeoutSec) * time.Second,
 	}
@@ -124,7 +122,7 @@ func VerifyCandidateIP(ctx context.Context, domain string, ip string, method str
 		details += fmt.Sprintf(", title: %q", directTitle)
 	}
 
-	return &pkg.ResultEntry{
+	return &ResultEntry{
 		Domain:     domain,
 		OriginIP:   ip,
 		Method:     method,
@@ -133,7 +131,7 @@ func VerifyCandidateIP(ctx context.Context, domain string, ip string, method str
 	}, true
 }
 
-func verifyCandidateHTTP(ctx context.Context, domain string, ip string, method string, baseline *BaselineResponse, certMatches bool, timeoutSec int) (*pkg.ResultEntry, bool) {
+func verifyCandidateHTTP(ctx context.Context, domain string, ip string, method string, baseline *BaselineResponse, certMatches bool, timeoutSec int) (*ResultEntry, bool) {
 	dialer := &net.Dialer{
 		Timeout: time.Duration(timeoutSec) * time.Second,
 	}
@@ -161,7 +159,7 @@ func verifyCandidateHTTP(ctx context.Context, domain string, ip string, method s
 	resp, err := client.Do(req)
 	if err != nil {
 		if certMatches {
-			return &pkg.ResultEntry{
+			return &ResultEntry{
 				Domain:     domain,
 				OriginIP:   ip,
 				Method:     method,
@@ -176,7 +174,7 @@ func verifyCandidateHTTP(ctx context.Context, domain string, ip string, method s
 	if resp.StatusCode >= 300 && resp.StatusCode < 400 {
 		loc := resp.Header.Get("Location")
 		if strings.Contains(loc, domain) {
-			return &pkg.ResultEntry{
+			return &ResultEntry{
 				Domain:     domain,
 				OriginIP:   ip,
 				Method:     method,
@@ -202,7 +200,7 @@ func verifyCandidateHTTP(ctx context.Context, domain string, ip string, method s
 		details += fmt.Sprintf(", title: %q", directTitle)
 	}
 
-	return &pkg.ResultEntry{
+	return &ResultEntry{
 		Domain:     domain,
 		OriginIP:   ip,
 		Method:     method,

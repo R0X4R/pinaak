@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/R0X4R/pinaak/pkg"
 	"github.com/miekg/dns"
 	"github.com/projectdiscovery/dnsx/libs/dnsx"
 )
@@ -115,7 +116,7 @@ func ResolveSubdomains(hosts []string, threads int, timeoutSec int) (map[string]
 }
 
 // ExtractNonCDNCandidates resolves subdomains and filters out CDN IP ranges.
-func ExtractNonCDNCandidates(subdomains []string, cdnChecker *CDNChecker, threads int, timeout int) ([]ResultCandidate, error) {
+func ExtractNonCDNCandidates(subdomains []string, cdnChecker *CDNChecker, threads int, timeout int) ([]pkg.ResultCandidate, error) {
 	if len(subdomains) == 0 {
 		return nil, nil
 	}
@@ -125,7 +126,7 @@ func ExtractNonCDNCandidates(subdomains []string, cdnChecker *CDNChecker, thread
 		return nil, err
 	}
 
-	var candidates []ResultCandidate
+	var candidates []pkg.ResultCandidate
 	seenIP := make(map[string]bool)
 
 	for host, ips := range resolved {
@@ -140,7 +141,7 @@ func ExtractNonCDNCandidates(subdomains []string, cdnChecker *CDNChecker, thread
 				continue
 			}
 
-			candidates = append(candidates, ResultCandidate{
+			candidates = append(candidates, pkg.ResultCandidate{
 				Domain:   host,
 				OriginIP: ip,
 				Method:   "subdomain-resolution",

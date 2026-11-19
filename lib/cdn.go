@@ -9,7 +9,39 @@ import (
 
 // CDNChecker wraps the ProjectDiscovery cdncheck client for IP filtering.
 type CDNChecker struct {
-	client *cdncheck.Client
+	client       *cdncheck.Client
+	customRanges []*customRange
+}
+
+type customRange struct {
+	ipNet    *net.IPNet
+	provider string
+}
+
+var additionalCDNs = map[string][]string{
+	"sucuri": {
+		"192.88.134.0/23",
+		"185.93.228.0/22",
+		"192.124.249.0/24",
+		"66.248.200.0/22",
+		"2a02:fe80::/29",
+	},
+	"akamai": {
+		"23.32.0.0/11",
+		"23.192.0.0/11",
+		"23.0.0.0/12",
+		"104.64.0.0/10",
+		"184.24.0.0/13",
+		"184.84.0.0/14",
+		"2.16.0.0/13",
+		"96.6.0.0/15",
+		"96.16.0.0/15",
+		"173.222.0.0/15",
+		"72.246.0.0/15",
+		"88.221.0.0/16",
+		"63.243.128.0/17",
+		"2600:1400::/24",
+	},
 }
 
 // NewCDNChecker instantiates a client pre-loaded with known CDN and WAF IP ranges.
@@ -18,7 +50,20 @@ func NewCDNChecker() (*CDNChecker, error) {
 	if client == nil {
 		return nil, fmt.Errorf("failed to initialize cdncheck client")
 	}
-	return &CDNChecker{client: client}, nil
+
+	checker := &CDNChecker{client: client}
+	for prov, cidrs := range additionalCDNs {
+		for _, c := range cidrs {
+			_, ipNet, err := net.ParseCIDR(c)
+			if err == nil {
+				checker.customRanges = append(checker.customRanges, &customRange{
+					ipNet:    ipNet,
+					provider: prov,
+				})
+			}
+		}
+	}
+	return checker, nil
 }
 
 // CheckIP determines whether an IP belongs to a CDN or WAF provider.
@@ -36,6 +81,13 @@ func (c *CDNChecker) CheckIP(ipStr string) (bool, string, error) {
 	// Check if IP is associated with a WAF provider
 	if matched, provider, err := c.client.CheckWAF(ip); err == nil && matched {
 		return true, provider, nil
+	}
+
+	// Check supplementary provider CIDR ranges
+	for _, cr := range c.customRanges {
+		if cr.ipNet.Contains(ip) {
+			return true, cr.provider, nil
+		}
 	}
 
 	return false, "", nil

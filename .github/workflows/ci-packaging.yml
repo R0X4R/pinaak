@@ -1,0 +1,78 @@
+name: Packaging Build
+
+on:
+  push:
+    branches: [main, dev]
+    paths:
+      - 'go.mod'
+      - 'go.sum'
+      - '**/*.go'
+      - 'Dockerfile'
+      - '.github/workflows/ci-packaging.yml'
+  pull_request:
+    branches: [main, dev]
+    paths:
+      - 'go.mod'
+      - 'go.sum'
+      - '**/*.go'
+      - 'Dockerfile'
+      - '.github/workflows/ci-packaging.yml'
+  workflow_dispatch:
+
+jobs:
+  static-musl:
+    name: Static musl build (Alpine)
+    runs-on: ubuntu-latest
+    container: golang:alpine
+    steps:
+      - name: Install build tools
+        run: apk add --no-cache git ca-certificates
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Build static binary
+        run: CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o pinaak-static main.go
+      - name: Smoke test static binary
+        run: ./pinaak-static -h
+
+  cross-compile:
+    name: Cross-platform matrix build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: windows
+            goarch: amd64
+            ext: ".exe"
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+          cache: true
+      - name: Build cross target
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+        run: go build -trimpath -ldflags="-s -w" -o "pinaak-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}" main.go
+
+  docker-smoke:
+    name: Docker build & smoke run
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Build local Docker image
+        run: docker build -t pinaak-local:test .
+      - name: Smoke test Docker container
+        run: docker run --rm pinaak-local:test -h

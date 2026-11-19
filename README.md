@@ -90,10 +90,12 @@ sha256sum -c checksums.txt
 
 Pinaak is published as a multi-architecture container supporting both `linux/amd64` and `linux/arm64`.
 
-Pull the image:
+Pull the image from GitHub Container Registry or Docker Hub:
 
 ```bash
 docker pull ghcr.io/r0x4r/pinaak:latest
+# or
+docker pull r0x4r/pinaak:latest
 ```
 
 Run directly against a target domain:

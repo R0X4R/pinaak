@@ -73,11 +73,11 @@ func CloseOutput() {
 
 // PrintInfo prints an informational status message.
 func PrintInfo(format string, args ...any) {
+	outMu.Lock()
+	defer outMu.Unlock()
 	if silent {
 		return
 	}
-	outMu.Lock()
-	defer outMu.Unlock()
 	symbol := color.BlueString("[*]")
 	msg := fmt.Sprintf(format, args...)
 	fmt.Fprintf(outWriter, "%s %s\n", symbol, msg)
@@ -94,11 +94,11 @@ func PrintSuccess(format string, args ...any) {
 
 // PrintWarning prints a cautionary notice.
 func PrintWarning(format string, args ...any) {
+	outMu.Lock()
+	defer outMu.Unlock()
 	if silent {
 		return
 	}
-	outMu.Lock()
-	defer outMu.Unlock()
 	symbol := color.YellowString("[!]")
 	msg := fmt.Sprintf(format, args...)
 	fmt.Fprintf(outWriter, "%s %s\n", symbol, msg)
@@ -137,7 +137,10 @@ func LogFinding(entry ResultEntry) {
 	fmt.Fprintln(outWriter, line)
 
 	if outFile != nil {
-		plain := fmt.Sprintf("%s -> %s (%s)\n", entry.Domain, entry.OriginIP, entry.Method)
-		_, _ = outFile.WriteString(plain)
+		plain := fmt.Sprintf("%s -> %s (%s)", entry.Domain, entry.OriginIP, entry.Method)
+		if entry.Details != "" {
+			plain = fmt.Sprintf("%s [%s]", plain, entry.Details)
+		}
+		_, _ = outFile.WriteString(plain + "\n")
 	}
 }

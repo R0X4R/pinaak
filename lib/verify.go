@@ -66,15 +66,15 @@ func FetchBaseline(domain string, timeoutSec int) (*BaselineResponse, error) {
 }
 
 // VerifyCandidateIP routes direct requests to the candidate IP with the domain in Host header.
-func VerifyCandidateIP(domain string, ip string, method string, baseline *BaselineResponse, timeoutSec int) (*pkg.ResultEntry, bool) {
+func VerifyCandidateIP(ctx context.Context, domain string, ip string, method string, baseline *BaselineResponse, timeoutSec int) (*pkg.ResultEntry, bool) {
 	dialer := &net.Dialer{
 		Timeout: time.Duration(timeoutSec) * time.Second,
 	}
 
-	// 1. Check TLS certificate presented directly on candidate IP port 443
+	// Check TLS certificate presented directly on candidate IP port 443
 	certMatches := checkTLSCertificate(domain, ip, timeoutSec)
 
-	// 2. Direct HTTP probing with Host header
+	// Direct HTTP probing with Host header
 	transport := &http.Transport{
 		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
 			return dialer.DialContext(ctx, network, fmt.Sprintf("%s:443", ip))
@@ -88,9 +88,12 @@ func VerifyCandidateIP(domain string, ip string, method string, baseline *Baseli
 	client := &http.Client{
 		Timeout:   time.Duration(timeoutSec) * time.Second,
 		Transport: transport,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
 	}
 
-	req, err := http.NewRequest("GET", fmt.Sprintf("https://%s", domain), nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("https://%s", domain), nil)
 	if err != nil {
 		return nil, false
 	}
@@ -98,8 +101,7 @@ func VerifyCandidateIP(domain string, ip string, method string, baseline *Baseli
 
 	resp, err := client.Do(req)
 	if err != nil {
-		// Fallback to plain HTTP on port 80
-		return verifyCandidateHTTP(domain, ip, method, baseline, certMatches, timeoutSec)
+		return verifyCandidateHTTP(ctx, domain, ip, method, baseline, certMatches, timeoutSec)
 	}
 	defer resp.Body.Close()
 
@@ -131,7 +133,7 @@ func VerifyCandidateIP(domain string, ip string, method string, baseline *Baseli
 	}, true
 }
 
-func verifyCandidateHTTP(domain string, ip string, method string, baseline *BaselineResponse, certMatches bool, timeoutSec int) (*pkg.ResultEntry, bool) {
+func verifyCandidateHTTP(ctx context.Context, domain string, ip string, method string, baseline *BaselineResponse, certMatches bool, timeoutSec int) (*pkg.ResultEntry, bool) {
 	dialer := &net.Dialer{
 		Timeout: time.Duration(timeoutSec) * time.Second,
 	}
@@ -145,9 +147,12 @@ func verifyCandidateHTTP(domain string, ip string, method string, baseline *Base
 	client := &http.Client{
 		Timeout:   time.Duration(timeoutSec) * time.Second,
 		Transport: transport,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
 	}
 
-	req, err := http.NewRequest("GET", fmt.Sprintf("http://%s", domain), nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("http://%s", domain), nil)
 	if err != nil {
 		return nil, false
 	}
@@ -167,6 +172,19 @@ func verifyCandidateHTTP(domain string, ip string, method string, baseline *Base
 		return nil, false
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode >= 300 && resp.StatusCode < 400 {
+		loc := resp.Header.Get("Location")
+		if strings.Contains(loc, domain) {
+			return &pkg.ResultEntry{
+				Domain:     domain,
+				OriginIP:   ip,
+				Method:     method,
+				Confidence: "medium",
+				Details:    fmt.Sprintf("port 80 redirects to %s", loc),
+			}, true
+		}
+	}
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 512*1024))
 	if err != nil {
@@ -196,6 +214,7 @@ func verifyCandidateHTTP(domain string, ip string, method string, baseline *Base
 func checkTLSCertificate(domain string, ip string, timeoutSec int) bool {
 	dialer := &net.Dialer{Timeout: time.Duration(timeoutSec) * time.Second}
 	conn, err := tls.DialWithDialer(dialer, "tcp", fmt.Sprintf("%s:443", ip), &tls.Config{
+		ServerName:         domain,
 		InsecureSkipVerify: true,
 	})
 	if err != nil {
@@ -228,17 +247,13 @@ func checkTLSCertificate(domain string, ip string, timeoutSec int) bool {
 
 func evaluateMatch(baseline *BaselineResponse, statusCode int, directTitle string, certMatches bool) (string, bool) {
 	if certMatches {
-		if baseline != nil && directTitle != "" && strings.EqualFold(directTitle, baseline.Title) {
+		if baseline != nil && directTitle != "" && baseline.Title != "" && strings.EqualFold(directTitle, baseline.Title) {
 			return "high", true
 		}
 		return "high", true
 	}
 
-	if baseline != nil && directTitle != "" && strings.EqualFold(directTitle, baseline.Title) {
-		return "medium", true
-	}
-
-	if baseline != nil && statusCode == baseline.StatusCode && statusCode == http.StatusOK {
+	if baseline != nil && directTitle != "" && baseline.Title != "" && strings.EqualFold(directTitle, baseline.Title) {
 		return "medium", true
 	}
 

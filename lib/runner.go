@@ -27,7 +27,11 @@ func Execute(ctx context.Context, opts *pkg.Options) error {
 	}
 
 	// 1. Process user-supplied subdomains from file or stdin (if provided)
-	subdomains, err := ReadSubdomains(opts.SubdomainsList)
+	subList := opts.SubdomainsList
+	if subList == "" && opts.Domain == "" && pkg.HasStdin() {
+		subList = "-"
+	}
+	subdomains, err := ReadSubdomains(subList)
 	if err == nil && len(subdomains) > 0 {
 		pkg.PrintInfo("Loaded %d input subdomains for range filtering", len(subdomains))
 		subCandidates, err := ExtractNonCDNCandidates(subdomains, cdnChecker, opts.Threads, opts.Timeout)
@@ -126,7 +130,7 @@ func Execute(ctx context.Context, opts *pkg.Options) error {
 			defer wg.Done()
 			defer func() { <-sem }()
 
-			finding, ok := VerifyCandidateIP(c.Domain, c.OriginIP, c.Method, baseline, opts.Timeout)
+			finding, ok := VerifyCandidateIP(ctx, c.Domain, c.OriginIP, c.Method, baseline, opts.Timeout)
 			if ok && finding != nil {
 				mu.Lock()
 				confirmedCount++

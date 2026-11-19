@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/miekg/dns"
@@ -14,12 +15,11 @@ import (
 
 // ReadSubdomains reads lines from an input file or piped standard input.
 func ReadSubdomains(filePath string) ([]string, error) {
+	if filePath == "-" {
+		return readLinesFromReader(os.Stdin)
+	}
 	if filePath != "" {
 		return readLinesFromFile(filePath)
-	}
-	stat, err := os.Stdin.Stat()
-	if err == nil && (stat.Mode()&os.ModeCharDevice) == 0 {
-		return readLinesFromReader(os.Stdin)
 	}
 	return nil, nil
 }
@@ -84,15 +84,33 @@ func ResolveSubdomains(hosts []string, threads int, timeoutSec int) (map[string]
 		return nil, fmt.Errorf("failed to initialize dnsx client: %w", err)
 	}
 
-	results := make(map[string][]string)
-	for _, host := range hosts {
-		ips, err := client.Lookup(host)
-		if err != nil || len(ips) == 0 {
-			continue
-		}
-		results[host] = ips
+	if threads <= 0 {
+		threads = 25
 	}
 
+	results := make(map[string][]string)
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, threads)
+
+	for _, host := range hosts {
+		wg.Add(1)
+		sem <- struct{}{}
+		go func(h string) {
+			defer wg.Done()
+			defer func() { <-sem }()
+
+			ips, err := client.Lookup(h)
+			if err != nil || len(ips) == 0 {
+				return
+			}
+			mu.Lock()
+			results[h] = ips
+			mu.Unlock()
+		}(host)
+	}
+
+	wg.Wait()
 	return results, nil
 }
 

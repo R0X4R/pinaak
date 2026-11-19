@@ -73,12 +73,12 @@ func CloseOutput() {
 
 // PrintInfo prints an informational status message.
 func PrintInfo(format string, args ...any) {
+	outMu.Lock()
+	defer outMu.Unlock()
 	if silent {
 		return
 	}
-	outMu.Lock()
-	defer outMu.Unlock()
-	symbol := color.BlueString("[*]")
+	symbol := color.BlueString("[INF]")
 	msg := fmt.Sprintf(format, args...)
 	fmt.Fprintf(outWriter, "%s %s\n", symbol, msg)
 }
@@ -87,19 +87,19 @@ func PrintInfo(format string, args ...any) {
 func PrintSuccess(format string, args ...any) {
 	outMu.Lock()
 	defer outMu.Unlock()
-	symbol := color.GreenString("[+]")
+	symbol := color.GreenString("[SUC]")
 	msg := fmt.Sprintf(format, args...)
 	fmt.Fprintf(outWriter, "%s %s\n", symbol, msg)
 }
 
 // PrintWarning prints a cautionary notice.
 func PrintWarning(format string, args ...any) {
+	outMu.Lock()
+	defer outMu.Unlock()
 	if silent {
 		return
 	}
-	outMu.Lock()
-	defer outMu.Unlock()
-	symbol := color.YellowString("[!]")
+	symbol := color.YellowString("[WRN]")
 	msg := fmt.Sprintf(format, args...)
 	fmt.Fprintf(outWriter, "%s %s\n", symbol, msg)
 }
@@ -108,7 +108,7 @@ func PrintWarning(format string, args ...any) {
 func PrintError(format string, args ...any) {
 	outMu.Lock()
 	defer outMu.Unlock()
-	symbol := color.RedString("[-]")
+	symbol := color.RedString("[ERR]")
 	msg := fmt.Sprintf(format, args...)
 	fmt.Fprintf(outWriter, "%s %s\n", symbol, msg)
 }
@@ -129,7 +129,7 @@ func LogFinding(entry ResultEntry) {
 		return
 	}
 
-	symbol := color.GreenString("[+]")
+	symbol := color.GreenString("[SUC]")
 	line := fmt.Sprintf("%s %s -> %s (%s)", symbol, entry.Domain, entry.OriginIP, entry.Method)
 	if entry.Details != "" {
 		line = fmt.Sprintf("%s [%s]", line, entry.Details)
@@ -137,7 +137,10 @@ func LogFinding(entry ResultEntry) {
 	fmt.Fprintln(outWriter, line)
 
 	if outFile != nil {
-		plain := fmt.Sprintf("%s -> %s (%s)\n", entry.Domain, entry.OriginIP, entry.Method)
-		_, _ = outFile.WriteString(plain)
+		plain := fmt.Sprintf("%s -> %s (%s)", entry.Domain, entry.OriginIP, entry.Method)
+		if entry.Details != "" {
+			plain = fmt.Sprintf("%s [%s]", plain, entry.Details)
+		}
+		_, _ = outFile.WriteString(plain + "\n")
 	}
 }

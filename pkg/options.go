@@ -54,7 +54,7 @@ func ParseOptions() (*Options, error) {
 
 	flagSet.CreateGroup("input", "Input",
 		flagSet.StringVarP(&opts.Domain, "domain", "d", "", "Target domain to discover origin IP for"),
-		flagSet.StringVarP(&opts.SubdomainsList, "list", "l", "", "File containing already-known subdomains (optional)"),
+		flagSet.StringVarP(&opts.SubdomainsList, "list", "l", "", "File containing already-known subdomains or '-' for stdin"),
 		flagSet.StringVar(&opts.ConfigFile, "config", "", "Configuration file path (default: ~/.config/pinaak/config.yaml)"),
 	)
 
@@ -110,7 +110,7 @@ func ParseOptions() (*Options, error) {
 		opts.Timeout = 10
 	}
 
-	if opts.SubdomainsList != "" {
+	if opts.SubdomainsList != "" && opts.SubdomainsList != "-" {
 		stat, err := os.Stat(opts.SubdomainsList)
 		if err != nil {
 			return nil, fmt.Errorf("subdomains list file not found: %w", err)

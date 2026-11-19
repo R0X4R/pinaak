@@ -36,13 +36,15 @@ func FetchFavicon(domain string, timeoutSec int) ([]byte, error) {
 		if err != nil {
 			continue
 		}
-		defer resp.Body.Close()
 
 		if resp.StatusCode == http.StatusOK {
 			data, err := io.ReadAll(io.LimitReader(resp.Body, 512*1024))
+			_ = resp.Body.Close()
 			if err == nil && len(data) > 0 {
 				return data, nil
 			}
+		} else {
+			_ = resp.Body.Close()
 		}
 	}
 
@@ -86,29 +88,31 @@ func SearchFaviconQueries(domain string, hash int32, shodanKey string, fofaEmail
 		shodanQuery := fmt.Sprintf("http.favicon.hash:%d", hash)
 		endpoint := fmt.Sprintf("https://api.shodan.io/shodan/host/search?key=%s&query=%s", url.QueryEscape(shodanKey), url.QueryEscape(shodanQuery))
 		resp, err := httpClient.Get(endpoint)
-		if err == nil && resp.StatusCode == http.StatusOK {
+		if err == nil {
 			defer resp.Body.Close()
-			var shodanResult struct {
-				Matches []struct {
-					IPStr string `json:"ip_str"`
-				} `json:"matches"`
-			}
-			if err := json.NewDecoder(resp.Body).Decode(&shodanResult); err == nil {
-				for _, match := range shodanResult.Matches {
-					ip := match.IPStr
-					if ip == "" || seenIP[ip] {
-						continue
-					}
-					seenIP[ip] = true
+			if resp.StatusCode == http.StatusOK {
+				var shodanResult struct {
+					Matches []struct {
+						IPStr string `json:"ip_str"`
+					} `json:"matches"`
+				}
+				if err := json.NewDecoder(resp.Body).Decode(&shodanResult); err == nil {
+					for _, match := range shodanResult.Matches {
+						ip := match.IPStr
+						if ip == "" || seenIP[ip] {
+							continue
+						}
+						seenIP[ip] = true
 
-					isCDN, _, _ := cdnChecker.CheckIP(ip)
-					if !isCDN {
-						candidates = append(candidates, ResultCandidate{
-							Domain:   domain,
-							OriginIP: ip,
-							Method:   "favicon-hash",
-							Details:  fmt.Sprintf("shodan favicon hash %d", hash),
-						})
+						isCDN, _, _ := cdnChecker.CheckIP(ip)
+						if !isCDN {
+							candidates = append(candidates, ResultCandidate{
+								Domain:   domain,
+								OriginIP: ip,
+								Method:   "favicon-hash",
+								Details:  fmt.Sprintf("shodan favicon hash %d", hash),
+							})
+						}
 					}
 				}
 			}
@@ -121,28 +125,30 @@ func SearchFaviconQueries(domain string, hash int32, shodanKey string, fofaEmail
 		qbase64 := base64.StdEncoding.EncodeToString([]byte(fofaQuery))
 		endpoint := fmt.Sprintf("https://fofa.info/api/v1/search/all?email=%s&key=%s&qbase64=%s", url.QueryEscape(fofaEmail), url.QueryEscape(fofaKey), url.QueryEscape(qbase64))
 		resp, err := httpClient.Get(endpoint)
-		if err == nil && resp.StatusCode == http.StatusOK {
+		if err == nil {
 			defer resp.Body.Close()
-			var fofaResult struct {
-				Results [][]string `json:"results"`
-			}
-			if err := json.NewDecoder(resp.Body).Decode(&fofaResult); err == nil {
-				for _, row := range fofaResult.Results {
-					if len(row) > 1 {
-						ip := row[1]
-						if ip == "" || seenIP[ip] {
-							continue
-						}
-						seenIP[ip] = true
+			if resp.StatusCode == http.StatusOK {
+				var fofaResult struct {
+					Results [][]string `json:"results"`
+				}
+				if err := json.NewDecoder(resp.Body).Decode(&fofaResult); err == nil {
+					for _, row := range fofaResult.Results {
+						if len(row) > 1 {
+							ip := row[1]
+							if ip == "" || seenIP[ip] {
+								continue
+							}
+							seenIP[ip] = true
 
-						isCDN, _, _ := cdnChecker.CheckIP(ip)
-						if !isCDN {
-							candidates = append(candidates, ResultCandidate{
-								Domain:   domain,
-								OriginIP: ip,
-								Method:   "favicon-hash",
-								Details:  fmt.Sprintf("fofa favicon hash %d", hash),
-							})
+							isCDN, _, _ := cdnChecker.CheckIP(ip)
+							if !isCDN {
+								candidates = append(candidates, ResultCandidate{
+									Domain:   domain,
+									OriginIP: ip,
+									Method:   "favicon-hash",
+									Details:  fmt.Sprintf("fofa favicon hash %d", hash),
+								})
+							}
 						}
 					}
 				}

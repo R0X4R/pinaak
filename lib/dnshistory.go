@@ -29,12 +29,19 @@ func ExtractMailRecords(domain string, cdnChecker *CDNChecker, timeoutSec int) (
 	var candidates []ResultCandidate
 	seen := make(map[string]bool)
 
-	// 1. Check MX records
-	mxHosts, err := client.Lookup(domain)
-	if err == nil {
-		for _, mxHost := range mxHosts {
-			// Resolve MX host A records
-			ips, err := client.Lookup(mxHost)
+	// Query multiple record types simultaneously
+	dnsData, err := client.QueryMultiple(domain)
+	if err == nil && dnsData != nil {
+		// 1. Check MX records
+		for _, mxEntry := range dnsData.MX {
+			fields := strings.Fields(mxEntry)
+			host := mxEntry
+			if len(fields) > 1 {
+				host = fields[len(fields)-1]
+			}
+			host = strings.TrimSuffix(host, ".")
+
+			ips, err := client.Lookup(host)
 			if err != nil {
 				continue
 			}
@@ -50,17 +57,14 @@ func ExtractMailRecords(domain string, cdnChecker *CDNChecker, timeoutSec int) (
 						Domain:   domain,
 						OriginIP: ip,
 						Method:   "mail-records",
-						Details:  fmt.Sprintf("mx host %s", mxHost),
+						Details:  fmt.Sprintf("mx host %s", host),
 					})
 				}
 			}
 		}
-	}
 
-	// 2. Check SPF TXT records for explicit ip4 definitions
-	txtRecords, err := client.Lookup(domain)
-	if err == nil {
-		for _, txt := range txtRecords {
+		// 2. Check SPF TXT records for explicit ip4 definitions
+		for _, txt := range dnsData.TXT {
 			if strings.Contains(txt, "v=spf1") {
 				parts := strings.Fields(txt)
 				for _, part := range parts {

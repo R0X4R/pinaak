@@ -64,13 +64,31 @@ flowchart TD
 
 ## Installation
 
-Install using Go:
+### Docker
+
+Run directly with Docker:
+
+```bash
+docker run --rm -i ghcr.io/r0x4r/pinaak -d target.com
+```
+
+Pipe subdomains from your local terminal:
+
+```bash
+cat subdomains.txt | docker run --rm -i ghcr.io/r0x4r/pinaak
+```
+
+### Pre-built Binaries
+
+Download pre-compiled binaries for Linux, macOS, and Windows from the [Releases](https://github.com/R0X4R/pinaak/releases) page. Extract the archive and move the executable to your system PATH.
+
+### Install via Go
 
 ```bash
 go install -v github.com/R0X4R/pinaak@latest
 ```
 
-Build from source:
+### Build from Source
 
 ```bash
 git clone https://github.com/R0X4R/pinaak.git && cd pinaak && go install -v

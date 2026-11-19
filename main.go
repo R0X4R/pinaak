@@ -40,8 +40,8 @@ func run() error {
 		defer pkg.CloseOutput()
 	}
 
-	if opts.Domain == "" && opts.SubdomainsList == "" && !pkg.HasStdin() {
-		return fmt.Errorf("target domain (-d), subdomain list (-l), or piped stdin input is required")
+	if opts.Domain == "" && opts.SubdomainsList == "" {
+		return fmt.Errorf("target domain (-d) or subdomains list (-l, or '-' for stdin) is required")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

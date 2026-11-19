@@ -27,11 +27,7 @@ func Execute(ctx context.Context, opts *pkg.Options) error {
 	}
 
 	// 1. Process user-supplied subdomains from file or stdin (if provided)
-	subList := opts.SubdomainsList
-	if subList == "" && opts.Domain == "" && pkg.HasStdin() {
-		subList = "-"
-	}
-	subdomains, err := ReadSubdomains(subList)
+	subdomains, err := ReadSubdomains(opts.SubdomainsList)
 	if err == nil && len(subdomains) > 0 {
 		pkg.PrintInfo("Loaded %d input subdomains for range filtering", len(subdomains))
 		subCandidates, err := ExtractNonCDNCandidates(subdomains, cdnChecker, opts.Threads, opts.Timeout)

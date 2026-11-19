@@ -126,7 +126,11 @@ func Execute(ctx context.Context, opts *pkg.Options) error {
 			defer wg.Done()
 			defer func() { <-sem }()
 
-			finding, ok := pkg.VerifyCandidateIP(ctx, c.Domain, c.OriginIP, c.Method, baseline, opts.Timeout)
+			targetDomain := c.Domain
+			if opts.Domain != "" {
+				targetDomain = opts.Domain
+			}
+			finding, ok := pkg.VerifyCandidateIP(ctx, targetDomain, c.OriginIP, c.Method, baseline, opts.Timeout)
 			if ok && finding != nil {
 				mu.Lock()
 				confirmedCount++

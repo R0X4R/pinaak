@@ -71,22 +71,38 @@ func ExtractMailRecords(domain string, cdnChecker *CDNChecker, timeoutSec int) (
 				for _, part := range parts {
 					if strings.HasPrefix(part, "ip4:") {
 						rawIP := strings.TrimPrefix(part, "ip4:")
-						// Handle CIDR or single IP
-						ipStr := rawIP
-						if idx := strings.Index(rawIP, "/"); idx != -1 {
-							ipStr = rawIP[:idx]
+						var targetIPs []string
+
+						if strings.Contains(rawIP, "/") {
+							ip, ipNet, err := net.ParseCIDR(rawIP)
+							if err == nil && ipNet != nil {
+								ones, _ := ipNet.Mask.Size()
+								if ones == 32 {
+									targetIPs = append(targetIPs, ip.String())
+								} else if ipv4 := ipNet.IP.To4(); ipv4 != nil {
+									// Probe first usable host address instead of network address
+									first := make(net.IP, len(ipv4))
+									copy(first, ipv4)
+									first[3]++
+									targetIPs = append(targetIPs, first.String())
+								}
+							}
+						} else if parsed := net.ParseIP(rawIP); parsed != nil {
+							targetIPs = append(targetIPs, rawIP)
 						}
-						parsed := net.ParseIP(ipStr)
-						if parsed != nil && !seen[ipStr] {
-							seen[ipStr] = true
-							isCDN, _, _ := cdnChecker.CheckIP(ipStr)
-							if !isCDN {
-								candidates = append(candidates, pkg.ResultCandidate{
-									Domain:   domain,
-									OriginIP: ipStr,
-									Method:   "mail-records",
-									Details:  fmt.Sprintf("spf directive %s", part),
-								})
+
+						for _, ipStr := range targetIPs {
+							if !seen[ipStr] {
+								seen[ipStr] = true
+								isCDN, _, _ := cdnChecker.CheckIP(ipStr)
+								if !isCDN {
+									candidates = append(candidates, pkg.ResultCandidate{
+										Domain:   domain,
+										OriginIP: ipStr,
+										Method:   "mail-records",
+										Details:  fmt.Sprintf("spf directive %s", part),
+									})
+								}
 							}
 						}
 					}

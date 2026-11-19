@@ -30,7 +30,7 @@ func FetchFavicon(domain string, timeoutSec int) ([]byte, error) {
 		if err != nil {
 			continue
 		}
-		req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; pinaak/1.0)")
+		req.Header.Set("User-Agent", RandomUserAgent())
 
 		resp, err := client.Do(req)
 		if err != nil {

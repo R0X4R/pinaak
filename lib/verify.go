@@ -40,7 +40,7 @@ func FetchBaseline(domain string, timeoutSec int) (*BaselineResponse, error) {
 		if err != nil {
 			continue
 		}
-		req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; pinaak/1.0)")
+		req.Header.Set("User-Agent", RandomUserAgent())
 
 		resp, err := client.Do(req)
 		if err != nil {
@@ -94,7 +94,7 @@ func VerifyCandidateIP(domain string, ip string, method string, baseline *Baseli
 	if err != nil {
 		return nil, false
 	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; pinaak/1.0)")
+	req.Header.Set("User-Agent", RandomUserAgent())
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -151,7 +151,7 @@ func verifyCandidateHTTP(domain string, ip string, method string, baseline *Base
 	if err != nil {
 		return nil, false
 	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; pinaak/1.0)")
+	req.Header.Set("User-Agent", RandomUserAgent())
 
 	resp, err := client.Do(req)
 	if err != nil {

@@ -6,10 +6,12 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/R0X4R/pinaak/pkg"
 )
 
 // SearchCensysCertificates queries the Censys v2 Hosts API for certificates matching the target domain.
-func SearchCensysCertificates(domain string, censysID string, censysSecret string, cdnChecker *CDNChecker, timeoutSec int) ([]ResultCandidate, error) {
+func SearchCensysCertificates(domain string, censysID string, censysSecret string, cdnChecker *CDNChecker, timeoutSec int) ([]pkg.ResultCandidate, error) {
 	if censysID == "" || censysSecret == "" {
 		return nil, nil
 	}
@@ -51,7 +53,7 @@ func SearchCensysCertificates(domain string, censysID string, censysSecret strin
 		return nil, fmt.Errorf("decoding censys response failed: %w", err)
 	}
 
-	var candidates []ResultCandidate
+	var candidates []pkg.ResultCandidate
 	seen := make(map[string]bool)
 
 	for _, hit := range responseData.Result.Hits {
@@ -66,7 +68,7 @@ func SearchCensysCertificates(domain string, censysID string, censysSecret strin
 			continue
 		}
 
-		candidates = append(candidates, ResultCandidate{
+		candidates = append(candidates, pkg.ResultCandidate{
 			Domain:   domain,
 			OriginIP: ip,
 			Method:   "censys-cert",
@@ -78,7 +80,7 @@ func SearchCensysCertificates(domain string, censysID string, censysSecret strin
 }
 
 // SearchShodanCertificates queries the Shodan API for hosts serving an SSL certificate matching the domain.
-func SearchShodanCertificates(domain string, shodanKey string, cdnChecker *CDNChecker, timeoutSec int) ([]ResultCandidate, error) {
+func SearchShodanCertificates(domain string, shodanKey string, cdnChecker *CDNChecker, timeoutSec int) ([]pkg.ResultCandidate, error) {
 	if shodanKey == "" {
 		return nil, nil
 	}
@@ -110,7 +112,7 @@ func SearchShodanCertificates(domain string, shodanKey string, cdnChecker *CDNCh
 		return nil, fmt.Errorf("decoding shodan response failed: %w", err)
 	}
 
-	var candidates []ResultCandidate
+	var candidates []pkg.ResultCandidate
 	seen := make(map[string]bool)
 
 	for _, match := range responseData.Matches {
@@ -125,7 +127,7 @@ func SearchShodanCertificates(domain string, shodanKey string, cdnChecker *CDNCh
 			continue
 		}
 
-		candidates = append(candidates, ResultCandidate{
+		candidates = append(candidates, pkg.ResultCandidate{
 			Domain:   domain,
 			OriginIP: ip,
 			Method:   "shodan-cert",
@@ -137,8 +139,8 @@ func SearchShodanCertificates(domain string, shodanKey string, cdnChecker *CDNCh
 }
 
 // SearchCertificates aggregates certificate origin discovery across available engines.
-func SearchCertificates(domain string, censysID string, censysSecret string, shodanKey string, cdnChecker *CDNChecker, timeoutSec int) ([]ResultCandidate, error) {
-	var combined []ResultCandidate
+func SearchCertificates(domain string, censysID string, censysSecret string, shodanKey string, cdnChecker *CDNChecker, timeoutSec int) ([]pkg.ResultCandidate, error) {
+	var combined []pkg.ResultCandidate
 	seen := make(map[string]bool)
 
 	if censysID != "" && censysSecret != "" {

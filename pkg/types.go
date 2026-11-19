@@ -1,4 +1,4 @@
-package lib
+package pkg
 
 // ResultCandidate holds an unverified origin IP candidate produced by a discovery technique.
 type ResultCandidate struct {

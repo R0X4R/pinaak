@@ -11,16 +11,27 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/R0X4R/pinaak/pkg"
 	"github.com/spaolacci/murmur3"
+)
+
+var (
+	shodanBaseURL = "https://api.shodan.io"
+	fofaBaseURL   = "https://fofa.info"
 )
 
 // FetchFavicon downloads the favicon.ico bytes from the target domain.
 func FetchFavicon(domain string, timeoutSec int) ([]byte, error) {
+	transport := &http.Transport{
+		Proxy:             http.ProxyFromEnvironment,
+		TLSClientConfig:   &tls.Config{InsecureSkipVerify: true},
+		DisableKeepAlives: true,
+	}
+	defer transport.CloseIdleConnections()
+
 	client := &http.Client{
-		Timeout: time.Duration(timeoutSec) * time.Second,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
+		Timeout:   time.Duration(timeoutSec) * time.Second,
+		Transport: transport,
 	}
 
 	schemes := []string{"https", "http"}
@@ -30,7 +41,7 @@ func FetchFavicon(domain string, timeoutSec int) ([]byte, error) {
 		if err != nil {
 			continue
 		}
-		req.Header.Set("User-Agent", RandomUserAgent())
+		req.Header.Set("User-Agent", pkg.RandomUserAgent())
 
 		resp, err := client.Do(req)
 		if err != nil {
@@ -75,8 +86,8 @@ func CalculateFaviconHash(iconBytes []byte) int32 {
 }
 
 // SearchFaviconQueries searches Shodan and FOFA for hosts matching the favicon hash.
-func SearchFaviconQueries(domain string, hash int32, shodanKey string, fofaEmail string, fofaKey string, cdnChecker *CDNChecker, timeoutSec int) ([]ResultCandidate, error) {
-	var candidates []ResultCandidate
+func SearchFaviconQueries(domain string, hash int32, shodanKey string, fofaEmail string, fofaKey string, cdnChecker *CDNChecker, timeoutSec int) ([]pkg.ResultCandidate, error) {
+	var candidates []pkg.ResultCandidate
 	seenIP := make(map[string]bool)
 
 	httpClient := &http.Client{
@@ -86,10 +97,9 @@ func SearchFaviconQueries(domain string, hash int32, shodanKey string, fofaEmail
 	// 1. Query Shodan if key is supplied
 	if shodanKey != "" {
 		shodanQuery := fmt.Sprintf("http.favicon.hash:%d", hash)
-		endpoint := fmt.Sprintf("https://api.shodan.io/shodan/host/search?key=%s&query=%s", url.QueryEscape(shodanKey), url.QueryEscape(shodanQuery))
+		endpoint := fmt.Sprintf("%s/shodan/host/search?key=%s&query=%s", shodanBaseURL, url.QueryEscape(shodanKey), url.QueryEscape(shodanQuery))
 		resp, err := httpClient.Get(endpoint)
 		if err == nil {
-			defer resp.Body.Close()
 			if resp.StatusCode == http.StatusOK {
 				var shodanResult struct {
 					Matches []struct {
@@ -106,7 +116,7 @@ func SearchFaviconQueries(domain string, hash int32, shodanKey string, fofaEmail
 
 						isCDN, _, _ := cdnChecker.CheckIP(ip)
 						if !isCDN {
-							candidates = append(candidates, ResultCandidate{
+							candidates = append(candidates, pkg.ResultCandidate{
 								Domain:   domain,
 								OriginIP: ip,
 								Method:   "favicon-hash",
@@ -116,6 +126,7 @@ func SearchFaviconQueries(domain string, hash int32, shodanKey string, fofaEmail
 					}
 				}
 			}
+			_ = resp.Body.Close()
 		}
 	}
 
@@ -123,10 +134,9 @@ func SearchFaviconQueries(domain string, hash int32, shodanKey string, fofaEmail
 	if fofaEmail != "" && fofaKey != "" {
 		fofaQuery := fmt.Sprintf("icon_hash=\"%d\"", hash)
 		qbase64 := base64.StdEncoding.EncodeToString([]byte(fofaQuery))
-		endpoint := fmt.Sprintf("https://fofa.info/api/v1/search/all?email=%s&key=%s&qbase64=%s", url.QueryEscape(fofaEmail), url.QueryEscape(fofaKey), url.QueryEscape(qbase64))
+		endpoint := fmt.Sprintf("%s/api/v1/search/all?email=%s&key=%s&qbase64=%s", fofaBaseURL, url.QueryEscape(fofaEmail), url.QueryEscape(fofaKey), url.QueryEscape(qbase64))
 		resp, err := httpClient.Get(endpoint)
 		if err == nil {
-			defer resp.Body.Close()
 			if resp.StatusCode == http.StatusOK {
 				var fofaResult struct {
 					Results [][]string `json:"results"`
@@ -142,7 +152,7 @@ func SearchFaviconQueries(domain string, hash int32, shodanKey string, fofaEmail
 
 							isCDN, _, _ := cdnChecker.CheckIP(ip)
 							if !isCDN {
-								candidates = append(candidates, ResultCandidate{
+								candidates = append(candidates, pkg.ResultCandidate{
 									Domain:   domain,
 									OriginIP: ip,
 									Method:   "favicon-hash",
@@ -153,6 +163,7 @@ func SearchFaviconQueries(domain string, hash int32, shodanKey string, fofaEmail
 					}
 				}
 			}
+			_ = resp.Body.Close()
 		}
 	}
 

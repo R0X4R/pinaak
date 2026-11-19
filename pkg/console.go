@@ -78,7 +78,7 @@ func PrintInfo(format string, args ...any) {
 	if silent {
 		return
 	}
-	symbol := color.BlueString("[INF]")
+	symbol := fmt.Sprintf("[%s]", color.BlueString("INF"))
 	msg := fmt.Sprintf(format, args...)
 	fmt.Fprintf(outWriter, "%s %s\n", symbol, msg)
 }
@@ -87,7 +87,10 @@ func PrintInfo(format string, args ...any) {
 func PrintSuccess(format string, args ...any) {
 	outMu.Lock()
 	defer outMu.Unlock()
-	symbol := color.GreenString("[SUC]")
+	if silent || jsonOutput {
+		return
+	}
+	symbol := fmt.Sprintf("[%s]", color.GreenString("SUC"))
 	msg := fmt.Sprintf(format, args...)
 	fmt.Fprintf(outWriter, "%s %s\n", symbol, msg)
 }
@@ -99,7 +102,7 @@ func PrintWarning(format string, args ...any) {
 	if silent {
 		return
 	}
-	symbol := color.YellowString("[WRN]")
+	symbol := fmt.Sprintf("[%s]", color.YellowString("WRN"))
 	msg := fmt.Sprintf(format, args...)
 	fmt.Fprintf(outWriter, "%s %s\n", symbol, msg)
 }
@@ -108,7 +111,7 @@ func PrintWarning(format string, args ...any) {
 func PrintError(format string, args ...any) {
 	outMu.Lock()
 	defer outMu.Unlock()
-	symbol := color.RedString("[ERR]")
+	symbol := fmt.Sprintf("[%s]", color.RedString("ERR"))
 	msg := fmt.Sprintf(format, args...)
 	fmt.Fprintf(outWriter, "%s %s\n", symbol, msg)
 }
@@ -129,7 +132,7 @@ func LogFinding(entry ResultEntry) {
 		return
 	}
 
-	symbol := color.GreenString("[SUC]")
+	symbol := fmt.Sprintf("[%s]", color.GreenString("SUC"))
 	line := fmt.Sprintf("%s %s -> %s (%s)", symbol, entry.Domain, entry.OriginIP, entry.Method)
 	if entry.Details != "" {
 		line = fmt.Sprintf("%s [%s]", line, entry.Details)

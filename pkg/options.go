@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/projectdiscovery/goflags"
+	fileutil "github.com/projectdiscovery/utils/file"
 	"gopkg.in/yaml.v3"
 )
 
@@ -54,7 +55,7 @@ func ParseOptions() (*Options, error) {
 
 	flagSet.CreateGroup("input", "Input",
 		flagSet.StringVarP(&opts.Domain, "domain", "d", "", "Target domain to discover origin IP for"),
-		flagSet.StringVarP(&opts.SubdomainsList, "list", "l", "", "File containing already-known subdomains or '-' for stdin"),
+		flagSet.StringVarP(&opts.SubdomainsList, "list", "l", "", "File containing already-known subdomains"),
 		flagSet.StringVar(&opts.ConfigFile, "config", "", "Configuration file path (default: ~/.config/pinaak/config.yaml)"),
 	)
 
@@ -85,6 +86,11 @@ func ParseOptions() (*Options, error) {
 
 	if err := flagSet.Parse(); err != nil {
 		return nil, err
+	}
+
+	// Auto-detect piped standard input when no list file is specified
+	if opts.SubdomainsList == "" && HasStdin() {
+		opts.SubdomainsList = "-"
 	}
 
 	// Load configuration file from ~/.config/pinaak/config.yaml or custom path
@@ -125,11 +131,7 @@ func ParseOptions() (*Options, error) {
 
 // HasStdin returns true if standard input is connected to a pipe or redirected file.
 func HasStdin() bool {
-	stat, err := os.Stdin.Stat()
-	if err != nil {
-		return false
-	}
-	return (stat.Mode() & os.ModeCharDevice) == 0
+	return fileutil.HasStdin()
 }
 
 func getDefaultConfigPath() string {

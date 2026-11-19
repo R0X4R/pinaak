@@ -15,10 +15,10 @@ func Execute(ctx context.Context, opts *pkg.Options) error {
 		return fmt.Errorf("failed to initialize CDN checker: %w", err)
 	}
 
-	var candidates []ResultCandidate
+	var candidates []pkg.ResultCandidate
 	seenCandidates := make(map[string]bool)
 
-	addCandidate := func(c ResultCandidate) {
+	addCandidate := func(c pkg.ResultCandidate) {
 		key := fmt.Sprintf("%s:%s", c.Domain, c.OriginIP)
 		if !seenCandidates[key] {
 			seenCandidates[key] = true
@@ -27,11 +27,7 @@ func Execute(ctx context.Context, opts *pkg.Options) error {
 	}
 
 	// 1. Process user-supplied subdomains from file or stdin (if provided)
-	subList := opts.SubdomainsList
-	if subList == "" && opts.Domain == "" && pkg.HasStdin() {
-		subList = "-"
-	}
-	subdomains, err := ReadSubdomains(subList)
+	subdomains, err := ReadSubdomains(opts.SubdomainsList)
 	if err == nil && len(subdomains) > 0 {
 		pkg.PrintInfo("Loaded %d input subdomains for range filtering", len(subdomains))
 		subCandidates, err := ExtractNonCDNCandidates(subdomains, cdnChecker, opts.Threads, opts.Timeout)
@@ -44,13 +40,13 @@ func Execute(ctx context.Context, opts *pkg.Options) error {
 	}
 
 	// 2. Process target domain techniques (if -d specified)
-	var baseline *BaselineResponse
+	var baseline *pkg.BaselineResponse
 	if opts.Domain != "" {
 		pkg.PrintInfo("Analyzing domain: %s", opts.Domain)
 
 		// Fetch baseline response through public CDN for verification comparison
 		if !opts.SkipVerification {
-			b, bErr := FetchBaseline(opts.Domain, opts.Timeout)
+			b, bErr := pkg.FetchBaseline(opts.Domain, opts.Timeout)
 			if bErr == nil {
 				baseline = b
 				pkg.PrintInfo("Captured baseline (status: %d, title: %q)", b.StatusCode, b.Title)
@@ -126,11 +122,18 @@ func Execute(ctx context.Context, opts *pkg.Options) error {
 		wg.Add(1)
 		sem <- struct{}{}
 
-		go func(c ResultCandidate) {
+		go func(c pkg.ResultCandidate) {
 			defer wg.Done()
 			defer func() { <-sem }()
 
-			finding, ok := VerifyCandidateIP(ctx, c.Domain, c.OriginIP, c.Method, baseline, opts.Timeout)
+			targetDomain := c.Domain
+			if opts.Domain != "" {
+				targetDomain = opts.Domain
+			}
+			finding, ok := pkg.VerifyCandidateIP(ctx, targetDomain, c.OriginIP, c.Method, baseline, opts.Timeout)
+			if !ok && opts.Domain != "" && c.Domain != "" && c.Domain != opts.Domain {
+				finding, ok = pkg.VerifyCandidateIP(ctx, c.Domain, c.OriginIP, c.Method, baseline, opts.Timeout)
+			}
 			if ok && finding != nil {
 				mu.Lock()
 				confirmedCount++

@@ -63,6 +63,17 @@ flowchart TD
 ```
 
 ## Installation
+### Install via Go
+
+```bash
+go install -v github.com/R0X4R/pinaak@latest
+```
+
+### Build from Source
+
+```bash
+git clone https://github.com/R0X4R/pinaak.git && cd pinaak && go install -v
+```
 
 ### Pre-built Binaries
 
@@ -73,18 +84,10 @@ Download the archive for your operating system and architecture from the [Releas
 On Linux and macOS:
 
 ```bash
-tar -xzf pinaak_latest_linux_amd64.tar.gz
-chmod +x pinaak
-sudo mv pinaak /usr/local/bin/
+tar -xzf pinaak_latest_linux_amd64.tar.gz && chmod +x pinaak && sudo mv pinaak /usr/local/bin/
 ```
 
 On Windows, extract `pinaak_latest_windows_amd64.zip` and add `pinaak.exe` to your PATH.
-
-Verify archive integrity using the published checksums:
-
-```bash
-sha256sum -c checksums.txt
-```
 
 ### Docker
 
@@ -126,18 +129,6 @@ Mount your current working directory to save results:
 
 ```bash
 docker run --rm -i -v $(pwd):/data ghcr.io/r0x4r/pinaak -d target.com -o /data/results.txt
-```
-
-### Install via Go
-
-```bash
-go install -v github.com/R0X4R/pinaak@latest
-```
-
-### Build from Source
-
-```bash
-git clone https://github.com/R0X4R/pinaak.git && cd pinaak && go install -v
 ```
 
 ## Configuration

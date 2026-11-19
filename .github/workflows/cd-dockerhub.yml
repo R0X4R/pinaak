@@ -13,7 +13,7 @@ on:
 jobs:
   dockerhub-publish:
     runs-on: ubuntu-latest
-    if: "${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}"
+    if: secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != ''
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -22,7 +22,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.DOCKERHUB_REPO || 'r0x4r/pinaak' }}
+          images: r0x4r/pinaak
           tags: |
             type=semver,pattern=v{{major}}
             type=semver,pattern=v{{major}}.{{minor}}

@@ -9,7 +9,7 @@ RUN go mod download
 
 # Copy source code and build static binary
 COPY . .
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /app/pinaak main.go
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /app/pinaak .
 
 # Minimal runtime image with CA certificates for HTTPS probing
 FROM alpine:latest

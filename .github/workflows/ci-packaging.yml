@@ -23,16 +23,20 @@ jobs:
   static-musl:
     name: Static musl build (Alpine)
     runs-on: ubuntu-latest
-    container: golang:alpine
     steps:
-      - name: Install build tools
-        run: apk add --no-cache git ca-certificates
       - name: Checkout Code
         uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+          cache: true
       - name: Build static binary
-        run: CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o pinaak-static main.go
-      - name: Smoke test static binary
-        run: ./pinaak-static -h
+        env:
+          CGO_ENABLED: 0
+        run: go build -trimpath -ldflags="-s -w" -o pinaak-static .
+      - name: Smoke test static binary in Alpine container
+        run: docker run --rm -v $(pwd):/app -w /app alpine:latest ./pinaak-static -h
 
   cross-compile:
     name: Cross-platform matrix build
@@ -64,7 +68,7 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: 0
-        run: go build -trimpath -ldflags="-s -w" -o "pinaak-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}" main.go
+        run: go build -trimpath -ldflags="-s -w" -o "pinaak-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}" .
 
   docker-smoke:
     name: Docker build & smoke run

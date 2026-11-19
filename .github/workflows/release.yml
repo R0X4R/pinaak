@@ -55,7 +55,7 @@ jobs:
           fi
           BIN_NAME="pinaak_${TAG_NAME}_${{ matrix.goos }}_${{ matrix.goarch }}"
           mkdir -p dist
-          go build -trimpath -ldflags="-s -w" -o "dist/pinaak${{ matrix.ext }}" main.go
+          go build -trimpath -ldflags="-s -w" -o "dist/pinaak${{ matrix.ext }}" .
 
           cd dist
           if [ "${{ matrix.goos }}" = "windows" ]; then
@@ -101,5 +101,6 @@ jobs:
           generate_release_notes: true
           draft: false
           prerelease: ${{ github.ref_type != 'tag' }}
+          overwrite: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

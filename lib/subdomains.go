@@ -40,7 +40,7 @@ func readLinesFromReader(r io.Reader) ([]string, error) {
 	scanner := bufio.NewScanner(r)
 
 	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
+		line := strings.ToLower(strings.TrimSpace(scanner.Text()))
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}

@@ -87,6 +87,9 @@ func PrintInfo(format string, args ...any) {
 func PrintSuccess(format string, args ...any) {
 	outMu.Lock()
 	defer outMu.Unlock()
+	if silent || jsonOutput {
+		return
+	}
 	symbol := fmt.Sprintf("[%s]", color.GreenString("SUC"))
 	msg := fmt.Sprintf(format, args...)
 	fmt.Fprintf(outWriter, "%s %s\n", symbol, msg)

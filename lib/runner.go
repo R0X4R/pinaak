@@ -131,6 +131,9 @@ func Execute(ctx context.Context, opts *pkg.Options) error {
 				targetDomain = opts.Domain
 			}
 			finding, ok := pkg.VerifyCandidateIP(ctx, targetDomain, c.OriginIP, c.Method, baseline, opts.Timeout)
+			if !ok && opts.Domain != "" && c.Domain != "" && c.Domain != opts.Domain {
+				finding, ok = pkg.VerifyCandidateIP(ctx, c.Domain, c.OriginIP, c.Method, baseline, opts.Timeout)
+			}
 			if ok && finding != nil {
 				mu.Lock()
 				confirmedCount++

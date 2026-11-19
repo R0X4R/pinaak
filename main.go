@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/R0X4R/pinaak/lib"
 	"github.com/R0X4R/pinaak/pkg"
 )
 
@@ -39,6 +40,10 @@ func run() error {
 		defer pkg.CloseOutput()
 	}
 
+	if opts.Domain == "" && opts.SubdomainsList == "" && !pkg.HasStdin() {
+		return fmt.Errorf("target domain (-d), subdomain list (-l), or piped stdin input is required")
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -53,12 +58,5 @@ func run() error {
 		os.Exit(130)
 	}()
 
-	if opts.Domain == "" && opts.SubdomainsList == "" && !pkg.HasStdin() {
-		return fmt.Errorf("target domain (-d), subdomain list (-l), or piped stdin input is required")
-	}
-
-	pkg.PrintInfo("Target: %s (workers: %d, timeout: %ds)", opts.Domain, opts.Threads, opts.Timeout)
-
-	_ = ctx
-	return nil
+	return lib.Execute(ctx, opts)
 }

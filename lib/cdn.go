@@ -39,7 +39,7 @@ func (c *CDNChecker) CheckIP(ipStr string) (bool, string, error) {
 	}
 
 	// Check if IP is in general CDN or Cloud database
-	if matched, provider, err := c.client.Check(ip); err == nil && matched {
+	if matched, provider, _, err := c.client.Check(ip); err == nil && matched {
 		return true, provider, nil
 	}
 

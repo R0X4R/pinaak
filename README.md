@@ -64,23 +64,67 @@ flowchart TD
 
 ## Installation
 
+### Pre-built Binaries
+
+Pre-compiled binaries are generated on every push to main and for every tagged release.
+
+Download the archive for your operating system and architecture from the [Releases](https://github.com/R0X4R/pinaak/releases) page.
+
+On Linux and macOS:
+
+```bash
+tar -xzf pinaak_latest_linux_amd64.tar.gz
+chmod +x pinaak
+sudo mv pinaak /usr/local/bin/
+```
+
+On Windows, extract `pinaak_latest_windows_amd64.zip` and add `pinaak.exe` to your PATH.
+
+Verify archive integrity using the published checksums:
+
+```bash
+sha256sum -c checksums.txt
+```
+
 ### Docker
 
-Run directly with Docker:
+Pinaak is published as a multi-architecture container supporting both `linux/amd64` and `linux/arm64`.
+
+Pull the image:
+
+```bash
+docker pull ghcr.io/r0x4r/pinaak:latest
+```
+
+Run directly against a target domain:
 
 ```bash
 docker run --rm -i ghcr.io/r0x4r/pinaak -d target.com
 ```
 
-Pipe subdomains from your local terminal:
+Pipe subdomains from stdin into the container:
 
 ```bash
 cat subdomains.txt | docker run --rm -i ghcr.io/r0x4r/pinaak
 ```
 
-### Pre-built Binaries
+Chain directly with subfinder:
 
-Download pre-compiled binaries for Linux, macOS, and Windows from the [Releases](https://github.com/R0X4R/pinaak/releases) page. Extract the archive and move the executable to your system PATH.
+```bash
+subfinder -d target.com -silent | docker run --rm -i ghcr.io/r0x4r/pinaak -d target.com
+```
+
+Mount your local configuration file for API keys:
+
+```bash
+docker run --rm -i -v ~/.config/pinaak:/root/.config/pinaak ghcr.io/r0x4r/pinaak -d target.com
+```
+
+Mount your current working directory to save results:
+
+```bash
+docker run --rm -i -v $(pwd):/data ghcr.io/r0x4r/pinaak -d target.com -o /data/results.txt
+```
 
 ### Install via Go
 

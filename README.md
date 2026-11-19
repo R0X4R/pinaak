@@ -1,6 +1,5 @@
 <p align="center">
-  <img src="image.png" alt="Pinaak image">
-  <p align="center">Find Origin IP Behind WAFs & CDNs</p>
+  <img src="images/thumbnail.png" alt="Pinaak image">
 </p>
 
 <p align="center">
@@ -33,8 +32,6 @@ Pipeline ready. Pinaak accepts subdomains piped directly from stdin or passed vi
 True origin verification. Pinaak connects directly to candidate IPs on ports 443 and 80 with the target Host header and TLS SNI, compares the response title against the public baseline, and discards unconfirmed candidates.
 
 Cloud origin preservation. Pinaak isolates and filters CDN and WAF edge IP addresses while retaining legitimate cloud virtual machines in the candidate pool.
-
-Clean terminal output. No ASCII banners, no decorative boxes, and no clutter. Pinaak uses minimal three-letter status tags like `[INF]`, `[SUC]`, `[WRN]`, and `[ERR]`, and supports JSON output for easy automation.
 
 ## Discovery Techniques
 
@@ -76,9 +73,7 @@ go install -v github.com/R0X4R/pinaak@latest
 Build from source:
 
 ```bash
-git clone https://github.com/R0X4R/pinaak.git
-cd pinaak
-go build -v .
+git clone https://github.com/R0X4R/pinaak.git && cd pinaak && go install -v
 ```
 
 ## Configuration
